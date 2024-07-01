@@ -1,5 +1,4 @@
 defmodule SlaxWeb.ChatRoomLive do
-  alias Phoenix.Endpoint
   use SlaxWeb, :live_view
 
   alias Slax.Chat
