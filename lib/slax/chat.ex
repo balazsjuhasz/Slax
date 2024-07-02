@@ -1,5 +1,6 @@
 defmodule Slax.Chat do
-  alias Slax.Chat.Room
+  alias Expo.Message
+  alias Slax.Chat.{Message, Room}
   alias Slax.Repo
 
   import Ecto.Query
@@ -30,5 +31,18 @@ defmodule Slax.Chat do
     room
     |> Room.changeset(attrs)
     |> Repo.update()
+  end
+
+  def list_messages_in_room(%Room{id: room_id}) do
+    Message
+    |> where([m], m.room_id == ^room_id)
+    |> order_by([m], asc: :inserted_at, asc: :id)
+    |> Repo.all()
+
+    # from(m in Message,
+    #   where: m.room_id == ^room_id,
+    #   order_by: [asc: :inserted_at, asc: :id]
+    # )
+    # |> Repo.all()
   end
 end
