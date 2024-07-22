@@ -1,5 +1,4 @@
 defmodule SlaxWeb.ChatRoomLive.Index do
-  alias Ecto.Query.Builder.Join
   use SlaxWeb, :live_view
 
   alias Slax.Chat
