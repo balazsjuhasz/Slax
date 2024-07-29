@@ -63,7 +63,9 @@ defmodule SlaxWeb.ChatRoomLive.Edit do
       |> Chat.change_room(room_params)
       |> Map.put(:action, :validate)
 
-    {:noreply, assign_form(socket, changeset)}
+    socket
+    |> assign_form(changeset)
+    |> noreply()
   end
 
   defp assign_form(socket, %Ecto.Changeset{} = changeset) do
