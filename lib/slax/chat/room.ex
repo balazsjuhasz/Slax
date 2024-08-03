@@ -29,6 +29,5 @@ defmodule Slax.Chat.Room do
     |> validate_length(:topic, max: 200)
     |> unsafe_validate_unique(:name, Slax.Repo)
     |> unique_constraint(:name)
-    |> IO.inspect()
   end
 end
