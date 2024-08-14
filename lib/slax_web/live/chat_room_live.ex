@@ -5,8 +5,10 @@ defmodule SlaxWeb.ChatRoomLive do
   alias Slax.Accounts.User
   alias Slax.Chat
   alias Slax.Chat.{Message, Room}
+  alias SlaxWeb.ChatRoomLive.ThreadComponent
   alias SlaxWeb.OnlineUsers
 
+  import SlaxWeb.ChatComponents
   import SlaxWeb.UserComponents
 
   def render(assigns) do
@@ -210,7 +212,7 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
       </div>
     </div>
-
+    <!-- Profile Sidebar -->
     <%= if assigns[:profile] do %>
       <.live_component
         id="profile"
@@ -219,7 +221,18 @@ defmodule SlaxWeb.ChatRoomLive do
         current_user={@current_user}
       />
     <% end %>
-
+    <!-- Thread Sidebar -->
+    <%= if assigns[:thread] do %>
+      <.live_component
+        id="thread"
+        module={ThreadComponent}
+        current_user={@current_user}
+        message={@thread}
+        room={@room}
+        timezone={@timezone}
+      />
+    <% end %>
+    <!-- New Room Modal -->
     <.modal
       id="new-room-modal"
       show={@live_action == :new}
@@ -281,47 +294,6 @@ defmodule SlaxWeb.ChatRoomLive do
     """
   end
 
-  attr :current_user, User, required: true
-  attr :dom_id, :string, required: true
-  attr :message, Message, required: true
-  attr :timezone, :string, required: true
-
-  defp message(assigns) do
-    ~H"""
-    <div id={@dom_id} class="group relative flex px-4 py-3">
-      <button
-        data-confirm="Are you sure?"
-        phx-click="delete-message"
-        phx-value-id={@message.id}
-        class="absolute top-4 right-4 text-red-500 hover:tex-red-800 cursor-pointer hidden group-hover:block"
-      >
-        <.icon :if={@current_user.id == @message.user.id} name="hero-trash" class="h-4 w-4" />
-      </button>
-      <.user_avatar
-        user={@message.user}
-        class="h-10 w-10 rounded rounded cursor-pointer"
-        phx-click="show-profile"
-        phx-value-user-id={@message.user.id}
-      />
-      <div class="ml-2">
-        <div class="-mt-1">
-          <.link
-            phx-click="show-profile"
-            phx-value-user-id={@message.user.id}
-            class="text-sm font-semibold hover:underline"
-          >
-            <span><%= @message.user.username %></span>
-          </.link>
-          <span :if={@timezone} class="ml-1 text-xs text-gray-500">
-            <%= message_timestamp(@message, @timezone) %>
-          </span>
-          <p class="text-sm"><%= @message.body %></p>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
   attr :count, :integer, required: true
 
   defp unread_message_counter(assigns) do
@@ -351,12 +323,6 @@ defmodule SlaxWeb.ChatRoomLive do
       <span class="ml-2 leading-none"><%= @user.username %></span>
     </.link>
     """
-  end
-
-  defp message_timestamp(message, timezone) do
-    message.inserted_at
-    |> Timex.Timezone.convert(timezone)
-    |> Timex.format!("%-l:%M %p", :strftime)
   end
 
   attr :active, :boolean, required: true
@@ -470,11 +436,20 @@ defmodule SlaxWeb.ChatRoomLive do
   end
 
   defp assign_message_form(socket, changeset) do
-    assign(socket, :new_message_form, to_form(changeset))
+    socket
+    |> assign(:new_message_form, to_form(changeset))
   end
 
   def handle_event("close-profile", _, socket) do
-    {:noreply, assign(socket, :profile, nil)}
+    socket
+    |> assign(:profile, nil)
+    |> noreply()
+  end
+
+  def handle_event("close-thread", _, socket) do
+    socket
+    |> assign(:thread, nil)
+    |> noreply()
   end
 
   def handle_event("delete-message", %{"id" => id}, socket) do
@@ -497,6 +472,22 @@ defmodule SlaxWeb.ChatRoomLive do
     |> noreply()
   end
 
+  def handle_event("show-thread", %{"id" => message_id}, socket) do
+    message = Chat.get_message!(message_id)
+
+    socket
+    |> assign(profile: nil, thread: message)
+    |> noreply()
+  end
+
+  def handle_event("show-profile", %{"user-id" => user_id}, socket) do
+    user = Accounts.get_user!(user_id)
+
+    socket
+    |> assign(profile: user, thread: nil)
+    |> noreply()
+  end
+
   def handle_event("submit-message", %{"message" => message_params}, socket) do
     %{current_user: current_user, room: room} = socket.assigns
 
@@ -514,11 +505,6 @@ defmodule SlaxWeb.ChatRoomLive do
       end
 
     {:noreply, socket}
-  end
-
-  def handle_event("show-profile", %{"user-id" => user_id}, socket) do
-    user = Accounts.get_user!(user_id)
-    {:noreply, assign(socket, :profile, user)}
   end
 
   def handle_event("toggle-topic", _params, socket) do
