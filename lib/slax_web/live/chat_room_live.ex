@@ -452,8 +452,15 @@ defmodule SlaxWeb.ChatRoomLive do
     |> noreply()
   end
 
-  def handle_event("delete-message", %{"id" => id}, socket) do
+  def handle_event("delete-message", %{"id" => id, "type" => "Message"}, socket) do
     Chat.delete_message_by_id(id, socket.assigns.current_user)
+
+    socket
+    |> noreply()
+  end
+
+  def handle_event("delete-message", %{"id" => id, "type" => "Reply"}, socket) do
+    Chat.delete_reply_by_id(id, socket.assigns.current_user)
 
     socket
     |> noreply()
@@ -559,6 +566,21 @@ defmodule SlaxWeb.ChatRoomLive do
 
     socket
     |> assign(online_users: online_users)
+    |> noreply()
+  end
+
+  def handle_info({:deleted_reply, message}, socket) do
+    if message.room_id == socket.assigns.room.id do
+      socket = stream_insert(socket, :messages, message)
+
+      if socket.assigns[:thread] && socket.assigns.thread.id == message.id do
+        assign(socket, :thread, message)
+      else
+        socket
+      end
+    else
+      socket
+    end
     |> noreply()
   end
 
