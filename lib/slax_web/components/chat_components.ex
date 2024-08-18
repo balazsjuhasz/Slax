@@ -90,7 +90,7 @@ defmodule SlaxWeb.ChatComponents do
     assigns = assign(assigns, :users, users)
 
     ~H"""
-    <.user_avatar :for={user <- users} class={["h-6 w-6 rounded flex-shrink-0 ml-1"]} user={user} />
+    <.user_avatar :for={user <- @users} class={["h-6 w-6 rounded flex-shrink-0 ml-1"]} user={user} />
     """
   end
 
