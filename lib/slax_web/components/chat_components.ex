@@ -19,6 +19,20 @@ defmodule SlaxWeb.ChatComponents do
         :if={!@in_thread? || @current_user.id == @message.user_id}
         class="absolute top-4 right-4 hidden group-hover:block bg-white shadow-sm px-2 pb-1 rounded border border-px border-slate-300 flex gap-1"
       >
+        <!-- Emoji -->
+        <button
+          :if={!@in_thread?}
+          phx-click={
+            JS.dispatch(
+              "show_emoji_picker",
+              detail: %{message_id: @message.id}
+            )
+          }
+          class="reaction-menu-button text-slate-500 hover:text-slate-600 cursor-pointer"
+        >
+          <.icon name="hero-face-smile" class="h-5 w-5" />
+        </button>
+        <!-- Show thread -->
         <button
           :if={!@in_thread?}
           phx-click="show-thread"
@@ -27,7 +41,7 @@ defmodule SlaxWeb.ChatComponents do
         >
           <.icon name="hero-chat-bubble-bottom-center-text" class="h-4 w-4" />
         </button>
-
+        <!-- Delete message -->
         <button
           :if={@current_user.id == @message.user_id}
           class="text-red-500 hover:tex-red-800 cursor-pointer"
@@ -66,11 +80,16 @@ defmodule SlaxWeb.ChatComponents do
           >
             <%= for {emoji, count, me?} <-
             enumerate_reactions(@message.reactions, @current_user) do %>
-              <button class={[
-                "flex items-center pl-2 pr-2 h-6 rounded-full text-xs",
-                me? && "bg-blue-100 border border-blue-400",
-                !me? && "bg-slate-200 hover:bg-slate-400"
-              ]}>
+              <button
+                class={[
+                  "flex items-center pl-2 pr-2 h-6 rounded-full text-xs",
+                  me? && "bg-blue-100 border border-blue-400",
+                  !me? && "bg-slate-200 hover:bg-slate-400"
+                ]}
+                phx-click={if me?, do: "remove-reaction", else: "add-reaction"}
+                phx-value-emoji={emoji}
+                phx-value-message_id={@message.id}
+              >
                 <span><%= emoji %></span>
                 <span class="ml-1 font-medium"><%= count %></span>
               </button>

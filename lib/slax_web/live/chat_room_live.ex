@@ -212,6 +212,7 @@ defmodule SlaxWeb.ChatRoomLive do
         </div>
       </div>
     </div>
+    <div id="emoji-picker-wrapper" class="absolute" phx-update="ignore"></div>
     <!-- Profile Sidebar -->
     <%= if assigns[:profile] do %>
       <.live_component
@@ -466,6 +467,15 @@ defmodule SlaxWeb.ChatRoomLive do
     |> assign(:new_message_form, to_form(changeset))
   end
 
+  def handle_event("add-reaction", %{"emoji" => emoji, "message_id" => message_id}, socket) do
+    message = Chat.get_message!(message_id)
+
+    Chat.add_reaction(emoji, message, socket.assigns.current_user)
+
+    socket
+    |> noreply()
+  end
+
   def handle_event("close-profile", _, socket) do
     socket
     |> assign(:profile, nil)
@@ -502,6 +512,15 @@ defmodule SlaxWeb.ChatRoomLive do
       joined?: true,
       rooms: Chat.list_joined_rooms_with_unread_counts(current_user)
     )
+    |> noreply()
+  end
+
+  def handle_event("remove-reaction", %{"emoji" => emoji, "message_id" => message_id}, socket) do
+    message = Chat.get_message!(message_id)
+
+    Chat.remove_reaction(emoji, message, socket.assigns.current_user)
+
+    socket
     |> noreply()
   end
 
@@ -563,6 +582,22 @@ defmodule SlaxWeb.ChatRoomLive do
 
     socket
     |> assign_message_form(changeset)
+    |> noreply()
+  end
+
+  def handle_info({:added_reaction, reaction}, socket) do
+    message = Chat.get_message!(reaction.message_id)
+
+    socket
+    |> refresh_message(message)
+    |> noreply()
+  end
+
+  def handle_info({:removed_reaction, reaction}, socket) do
+    message = Chat.get_message!(reaction.message_id)
+
+    socket
+    |> refresh_message(message)
     |> noreply()
   end
 
